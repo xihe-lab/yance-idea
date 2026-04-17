@@ -9,8 +9,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import com.xihe_lab.yance.engine.InspectionContext
-import com.xihe_lab.yance.idea.provider.p3c.P3cInspection
-import com.xihe_lab.yance.idea.util.P3cReportGenerator
+import com.xihe_lab.yance.idea.p3c.inspection.P3cNamingInspection
+import com.xihe_lab.yance.idea.p3c.util.P3cReportGenerator
 
 /**
  * P3C 扫描 Action
@@ -33,7 +33,7 @@ class P3cScanAction : AnAction() {
         logger.info("Scanning file: ${virtualFile.path}")
 
         val allProblems = mutableMapOf<String, List<String>>()
-        val inspection = P3cInspection()
+        val inspection = P3cNamingInspection()
 
         val psiManager = PsiManager.getInstance(project)
         val problems = scanFile(project, virtualFile, inspection, psiManager)
@@ -62,7 +62,7 @@ class P3cScanAction : AnAction() {
     private fun scanAllProjects(
         project: Project,
         allProblems: MutableMap<String, List<String>> = mutableMapOf(),
-        inspection: P3cInspection = P3cInspection(),
+        inspection: P3cNamingInspection = P3cNamingInspection(),
         psiManager: PsiManager = PsiManager.getInstance(project)
     ) {
         val virtualFiles = getAllJavaFiles(project)
@@ -108,7 +108,7 @@ class P3cScanAction : AnAction() {
     private fun scanFile(
         project: Project,
         virtualFile: VirtualFile,
-        inspection: P3cInspection,
+        inspection: P3cNamingInspection,
         psiManager: PsiManager
     ): List<String> {
         val psiFile = psiManager.findFile(virtualFile) ?: return emptyList()

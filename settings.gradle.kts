@@ -6,4 +6,5 @@ rootProject.name = "yance-lint"
 
 include("yance-common")
 include("yance-idea")
+include("yance-p3c")
 include("yance-lint")

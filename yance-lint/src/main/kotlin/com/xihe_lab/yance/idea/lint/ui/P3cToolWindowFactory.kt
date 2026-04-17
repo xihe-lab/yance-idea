@@ -10,7 +10,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.diagnostic.Logger
-import com.xihe_lab.yance.idea.service.P3cScanService
+import com.xihe_lab.yance.idea.p3c.service.P3cScanService
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import javax.swing.*

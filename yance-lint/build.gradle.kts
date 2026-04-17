@@ -21,6 +21,7 @@ repositories {
 dependencies {
     implementation(project(":yance-common"))
     implementation(project(":yance-idea"))
+    implementation(project(":yance-p3c"))
 
     intellijPlatform {
         intellijIdea(providers.gradleProperty("platformVersion"))
