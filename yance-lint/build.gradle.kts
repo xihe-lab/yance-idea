@@ -22,6 +22,9 @@ dependencies {
     implementation(project(":yance-common"))
     implementation(project(":yance-idea"))
     implementation(project(":yance-p3c"))
+    implementation(project(":yance-eslint"))
+    implementation(project(":yance-stylelint"))
+    implementation(project(":yance-checkstyle"))
 
     intellijPlatform {
         intellijIdea(providers.gradleProperty("platformVersion"))

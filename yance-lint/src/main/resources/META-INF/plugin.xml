@@ -128,6 +128,28 @@
         <projectService serviceInterface="com.xihe_lab.yance.idea.p3c.service.P3cScanService"
                         serviceImplementation="com.xihe_lab.yance.idea.p3c.service.P3cScanService"
         />
+
+        <!-- External Tool Services -->
+        <projectService serviceImplementation="com.xihe_lab.yance.engine.ExternalToolLocator"
+        />
+
+        <!-- ESLint Annotator -->
+        <externalAnnotator language="JavaScript"
+                           implementationClass="com.xihe_lab.yance.idea.eslint.EsLintAnnotator"
+        />
+        <externalAnnotator language="TypeScript"
+                           implementationClass="com.xihe_lab.yance.idea.eslint.EsLintAnnotator"
+        />
+
+        <!-- Stylelint Annotator -->
+        <externalAnnotator language="CSS"
+                           implementationClass="com.xihe_lab.yance.idea.stylelint.StylelintAnnotator"
+        />
+
+        <!-- Checkstyle Annotator -->
+        <externalAnnotator language="JAVA"
+                           implementationClass="com.xihe_lab.yance.idea.checkstyle.CheckstyleAnnotator"
+        />
     </extensions>
 
     <!-- Actions -->
