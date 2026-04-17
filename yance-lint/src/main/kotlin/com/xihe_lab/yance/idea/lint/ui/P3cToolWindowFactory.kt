@@ -11,7 +11,6 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.diagnostic.Logger
 import com.xihe_lab.yance.idea.service.P3cScanService
-import com.xihe_lab.yance.idea.provider.p3c.P3cBridgeService
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import javax.swing.*
@@ -96,17 +95,11 @@ class P3cToolWindowFactory : ToolWindowFactory {
 
     private fun displayResults(results: Map<String, List<String>>, service: P3cScanService, resultArea: JEditorPane) {
         val total = results.values.flatten().size
-        val bridgeService = P3cBridgeService(service.getProject())
 
         val text = StringBuilder()
         text.append("========================================\n")
         text.append("P3C 命名规范检查报告\n")
         text.append("========================================\n\n")
-
-        if (!bridgeService.isPluginAvailable()) {
-            text.append("[提示] 未检测到阿里巴巴 P3C 插件\n")
-            text.append("请在插件市场搜索 \"P3C\" 进行安装\n\n")
-        }
 
         text.append("扫描结果: 发现 $total 个问题\n")
         text.append("----------------------------------------\n\n")

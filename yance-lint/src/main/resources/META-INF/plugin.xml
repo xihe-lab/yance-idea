@@ -27,9 +27,6 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
 
-    <!-- Optional dependency on Alibaba P3C plugin -->
-    <depends optional="true" config-file="p3c-optional.xml">com.alibaba.p3c.xenoamess</depends>
-
     <resource-bundle>messages.YanceLintBundle</resource-bundle>
 
     <!-- Extensions definition -->
