@@ -7,6 +7,7 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.openapi.application.ReadAction
@@ -65,7 +66,7 @@ class P3cScanService(private val project: Project) {
         for (inspection in allInspections) {
             val holder = ProblemsHolder(inspectionManager, psiFile, true)
             val visitor = inspection.buildVisitor(holder, true)
-            psiFile.accept(visitor)
+            acceptRecursively(psiFile, visitor)
 
             for (descriptor in holder.results) {
                 problems.add(formatProblem(descriptor))
@@ -87,6 +88,13 @@ class P3cScanService(private val project: Project) {
             val document = com.intellij.psi.PsiDocumentManager.getInstance(project).getDocument(element.containingFile)
             document?.getLineNumber(element.textRange.startOffset)?.let { it + 1 } ?: 1
         } catch (_: Exception) { 1 }
+    }
+
+    private fun acceptRecursively(element: PsiElement, visitor: com.intellij.psi.PsiElementVisitor) {
+        element.accept(visitor)
+        for (child in element.children) {
+            acceptRecursively(child, visitor)
+        }
     }
 
     private fun getAllJavaFiles(): List<VirtualFile> {
