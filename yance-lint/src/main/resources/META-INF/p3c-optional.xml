@@ -1,0 +1,17 @@
+<!-- Optional P3C Integration Configuration -->
+<!-- This file is loaded only when Alibaba P3C plugin is installed -->
+
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Override P3C Inspection to use P3C plugin when available -->
+        <localInspection implementationClass="com.xihe_lab.yance.core.provider.p3c.P3cInspection"
+                         shortName="p3c-naming-inspection"
+                         displayName="P3C 命名检查"
+                         groupName="Java"
+                         language="JAVA"
+                         level="WARNING"
+                         enabledByDefault="true"
+                         hasStaticDescription="true"
+        />
+    </extensions>
+</idea-plugin>

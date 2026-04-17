@@ -1,0 +1,42 @@
+<html>
+<body>
+<p>
+    检测违反阿里巴巴 P3C 编程规范的命名问题。
+</p>
+<p>
+    该检查包括以下规则：
+</p>
+<ul>
+    <li>类名必须使用 UpperCamelCase（大驼峰）命名法</li>
+    <li>方法名必须使用 lowerCamelCase（小驼峰）命名法</li>
+    <li>常量（static final）必须使用 CONSTANT_CASE（全大写下划线分隔）命名法</li>
+</ul>
+<p>
+    示例：
+</p>
+<pre><code>
+// ✅ 正确示例
+public class UserService {  // UpperCamelCase
+    private String userName;  // lowerCamelCase
+
+    public void getUserInfo() {  // lowerCamelCase
+    }
+
+    public static final int MAX_SIZE = 100;  // CONSTANT_CASE
+}
+
+// ❌ 错误示例
+public class user_service {  // 不符合 UpperCamelCase
+    private String User_Name;  // 不符合 lowerCamelCase
+
+    public void GetUserInfo() {  // 不符合 lowerCamelCase
+    }
+
+    public static final int max_size = 100;  // 不符合 CONSTANT_CASE
+}
+</code></pre>
+<!-- tooltip end -->
+<p>在设置中可以启用/禁用此检查规则。</p>
+
+</body>
+</html>
