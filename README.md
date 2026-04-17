@@ -1,24 +1,32 @@
-# IntelliJ Platform Plugin Template
+# YanceLint
 
-[![Twitter Follow](https://img.shields.io/badge/follow-%40JBPlatform-1DA1F2?logo=twitter)](https://twitter.com/JBPlatform)
-[![Developers Forum](https://img.shields.io/badge/JetBrains%20Platform-Join-blue)][jb:forum]
+[![JetBrains Marketplace](https://img.shields.io/badge/JetBrains-Marketplace-blue)](https://plugins.jetbrains.com/)
+
+YanceLint 是一个企业级代码规约检查 IntelliJ IDEA 插件，基于阿里巴巴 Java 开发手册（P3C）实现。
 
 ## Plugin template structure
 
-A generated project contains the following content structure:
+生成的项目包含以下内容结构：
 
-```
+```text
 .
 ├── .run/                   Predefined Run/Debug Configurations
-├── build/                  Output build directory
 ├── gradle
 │   ├── wrapper/            Gradle Wrapper
 │   ├── libs.versions.toml  Version catalog
-├── src                     Plugin sources
-│   ├── main
-│   │   ├── kotlin/         Kotlin production sources
-│   │   └── resources/      Resources - plugin.xml, icons, messages
-├── .gitignore              Git ignoring rules
+├── yance-common/           核心模型/引擎/QuickFix
+├── yance-idea/             IDEA 通用层
+├── yance-p3c/              P3C 规则模块（Inspection + ScanService）
+│   └── src/main/kotlin/
+│       └── com/xihe_lab/yance/idea/p3c/
+│           ├── inspection/  10 个 LocalInspectionTool
+│           ├── service/     P3cScanService
+│           ├── rule/        P3cRuleMetadata + P3cRuleProvider
+│           └── util/        P3cReportGenerator
+├── yance-lint/             插件组装模块
+│   └── src/main/
+│       ├── kotlin/         Action + ToolWindow
+│       └── resources/      plugin.xml, messages
 ├── build.gradle.kts        Gradle build configuration
 ├── gradle.properties       Gradle configuration properties
 ├── gradlew                 *nix Gradle Wrapper script
@@ -27,36 +35,54 @@ A generated project contains the following content structure:
 └── settings.gradle.kts     Gradle project settings
 ```
 
-In addition to the configuration files, the most crucial part is the `src` directory, which contains our implementation
-and the manifest for our plugin – [plugin.xml][file:plugin.xml].
-
-> [!NOTE]
-> To use Java in your plugin, create the `/src/main/java` directory.
-
 ## Plugin configuration file
 
-The plugin configuration file is a [plugin.xml][file:plugin.xml] file located in the `src/main/resources/META-INF`
+The plugin configuration file is a [plugin.xml][file:plugin.xml] file located in the `yance-lint/src/main/resources/META-INF`
 directory.
 It provides general information about the plugin, its dependencies, extensions, and listeners.
 
 You can read more about this file in the [Plugin Configuration File][docs:plugin.xml] section of our documentation.
 
-If you're still not quite sure what this is all about, read our
-introduction: [What is the IntelliJ Platform?][docs:intro]
+## 检查规则
 
-$H$H Predefined Run/Debug configurations
+YanceLint 内置 10 条 P3C 检查规则：
 
-Within the default project structure, there is a `.run` directory provided containing predefined *Run/Debug
-configurations* that expose corresponding Gradle tasks:
+| 规则 | 说明 |
+| --- | --- |
+| 类名 UpperCamelCase | 类名必须大驼峰 |
+| 方法名 lowerCamelCase | 方法名必须小驼峰 |
+| 常量 CONSTANT_CASE | 常量全大写下划线分隔 |
+| 包装类型 equals 比较 | 禁止用 == 比较包装类型 |
+| equals 常量放左侧 | 避免空指针异常 |
+| 避免实例访问静态成员 | 应通过类名访问静态成员 |
+| 控制语句加大括号 | if/for/while 必须使用 {} |
+| 数组声明 Type[] | 禁止 C 风格 String str[] |
+| long 常量大写 L | 避免与数字 1 混淆 |
+| 覆写方法 @Override | 覆写方法必须标注注解 |
+| Map/Set key hashCode/equals | 自定义 key 必须重写 |
+| 禁用过时 API | 禁止使用 @Deprecated |
 
-| Configuration name | Description                                                                                                                                                                         |
-|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Run Plugin         | Runs [`:runIde`][gh:intellij-platform-gradle-plugin-runIde] IntelliJ Platform Gradle Plugin task. Use the *Debug* icon for plugin debugging.                                        |
-| Run Tests          | Runs [`:test`][gradle:lifecycle-tasks] Gradle task.                                                                                                                                 |
-| Run Verifications  | Runs [`:verifyPlugin`][gh:intellij-platform-gradle-plugin-verifyPlugin] IntelliJ Platform Gradle Plugin task to check the plugin compatibility against the specified IntelliJ IDEs. |
+## 使用
+
+- **实时检查**：编辑 Java 文件时自动触发，编辑器中高亮违规
+- **项目扫描**：`Tools → Scan P3C Rules` 或 `Shift+Alt+P`
+- **工具窗口**：左侧 P3C 面板查看扫描结果，支持复制报告
+
+## 构建
+
+```bash
+# 构建插件
+gradle :yance-lint:buildPlugin
+
+# 运行 sandbox IDE
+gradle :yance-lint:runIde
+
+# 验证插件兼容性
+gradle :yance-lint:verifyPlugin
+```
 
 > [!NOTE]
-> You can find the logs from the running task in the `idea.log` tab.
+> 使用系统 `gradle` 命令（wrapper jar 可能有网络问题）。JVM toolchain 需要 JDK 21。
 
 ## Publishing the plugin
 
@@ -68,9 +94,6 @@ Releasing a plugin to [JetBrains Marketplace](https://plugins.jetbrains.com) is 
 the `publishPlugin` Gradle task provided by
 the [intellij-platform-gradle-plugin][gh:intellij-platform-gradle-plugin-docs].
 
-You can also upload the plugin to the [JetBrains Plugin Repository](https://plugins.jetbrains.com/plugin/upload)
-manually via UI.
-
 ## Useful links
 
 - [IntelliJ Platform SDK Plugin SDK][docs]
@@ -78,38 +101,16 @@ manually via UI.
 - [IntelliJ Platform Explorer][jb:ipe]
 - [JetBrains Marketplace Quality Guidelines][jb:quality-guidelines]
 - [IntelliJ Platform UI Guidelines][jb:ui-guidelines]
-- [JetBrains Marketplace Paid Plugins][jb:paid-plugins]
-- [IntelliJ SDK Code Samples][gh:code-samples]
 
 [docs]: https://plugins.jetbrains.com/docs/intellij
-
-[docs:intro]: https://plugins.jetbrains.com/docs/intellij/intellij-platform.html?from=IJPluginTemplate
 
 [docs:plugin.xml]: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html?from=IJPluginTemplate
 
 [docs:publishing]: https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html?from=IJPluginTemplate
 
-[file:plugin.xml]: ./src/main/resources/META-INF/plugin.xml
-
-[gh:code-samples]: https://github.com/JetBrains/intellij-sdk-code-samples
-
-[gh:intellij-platform-gradle-plugin]: https://github.com/JetBrains/intellij-platform-gradle-plugin
+[file:plugin.xml]: ./yance-lint/src/main/resources/META-INF/plugin.xml
 
 [gh:intellij-platform-gradle-plugin-docs]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
-
-[gh:intellij-platform-gradle-plugin-runIde]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#runIde
-
-[gh:intellij-platform-gradle-plugin-verifyPlugin]: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#verifyPlugin
-
-[gradle:lifecycle-tasks]: https://docs.gradle.org/current/userguide/java_plugin.html#lifecycle_tasks
-
-[jb:github]: https://github.com/JetBrains/.github/blob/main/profile/README.md
-
-[jb:forum]: https://platform.jetbrains.com/
-
-[jb:quality-guidelines]: https://plugins.jetbrains.com/docs/marketplace/quality-guidelines.html
-
-[jb:paid-plugins]: https://plugins.jetbrains.com/docs/marketplace/paid-plugins-marketplace.html
 
 [jb:quality-guidelines]: https://plugins.jetbrains.com/docs/marketplace/quality-guidelines.html
 
