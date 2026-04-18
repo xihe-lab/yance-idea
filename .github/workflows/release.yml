@@ -61,11 +61,18 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
 
-      - name: Update Version in Build
+      - name: Update Version and Channel in Build
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          CHANNEL="${{ steps.version.outputs.channel }}"
+          # Update version
           sed -i "s/version = \".*\"/version = \"$VERSION\"/" yance-lint/build.gradle.kts
-          sed -i "s/version = \".*\"/version = \"$VERSION\"/" yance-lint/src/main/kotlin/com/xihe_lab/yance/idea/server/LintHttpServer.kt 2>/dev/null || true
+          # Update channels list based on release channel
+          if [ "$CHANNEL" = "stable" ]; then
+            sed -i 's/channels = listOf("eap")/channels = listOf("stable")/' yance-lint/build.gradle.kts
+          elif [ "$CHANNEL" = "beta" ]; then
+            sed -i 's/channels = listOf("eap")/channels = listOf("beta")/' yance-lint/build.gradle.kts
+          fi
 
       - name: Build Plugin
         run: gradle :yance-lint:buildPlugin --no-daemon
