@@ -116,9 +116,9 @@
                          enabledByDefault="true"
         />
 
-        <!-- Register P3C ToolWindow -->
-        <toolWindow id="P3C"
-                    factoryClass="com.xihe_lab.yance.idea.lint.ui.P3cToolWindowFactory"
+        <!-- Register YanceLint ToolWindow -->
+        <toolWindow id="YanceLint"
+                    factoryClass="com.xihe_lab.yance.idea.lint.ui.YanceLintToolWindowFactory"
                     anchor="left"
                     icon="AllIcons.Actions.Search"
                     isVisibleByDefault="true"
@@ -155,10 +155,10 @@
     <!-- Actions -->
     <actions>
         <!-- P3C Scan Action -->
-        <action id="P3cScanAction"
-                class="com.xihe_lab.yance.idea.lint.action.P3cScanAction"
-                text="Scan P3C Rules"
-                description="Scan project for P3C naming convention violations"
+        <action id="YanceLintScanAction"
+                class="com.xihe_lab.yance.idea.lint.action.YanceLintScanAction"
+                text="Scan YanceLint Rules"
+                description="Scan project for all convention violations"
                 icon="AllIcons.Actions.Search">
             <add-to-group group-id="ToolsMenu" />
             <keyboard-shortcut first-keystroke="shift alt P" keymap="$default" />

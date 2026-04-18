@@ -9,6 +9,7 @@ import com.xihe_lab.yance.model.RuleCategory
 import com.xihe_lab.yance.model.RuleSeverity
 import com.xihe_lab.yance.model.YanceRule
 import java.io.BufferedReader
+import java.io.File
 import java.io.InputStreamReader
 import java.util.concurrent.*
 
@@ -24,29 +25,49 @@ class StylelintRunner(private val project: Project) {
         val column: Int
     )
 
+    private val cssExtensions = setOf("css", "scss", "less", "sass")
+    private val excludedDirs = setOf("node_modules", ".git", "build", "dist", "out", ".idea", ".cache")
+
     fun run(filePath: String): List<StylelintMessage> {
         val locator = project.getService(ExternalToolLocator::class.java)
-        val stylelintPath = locator.locate("stylelint") ?: run {
-            logger.info("Stylelint not found in project or global PATH")
-            return emptyList()
-        }
+        val stylelintPath = locator.locate("stylelint") ?: return emptyList()
 
-        return executeStylelint(stylelintPath, filePath)
+        val results = executeStylelint(stylelintPath, listOf(filePath))
+        return results.values.flatten()
     }
 
-    private fun executeStylelint(stylelintPath: String, filePath: String): List<StylelintMessage> {
-        try {
-            val command = mutableListOf(stylelintPath, "--formatter", "json", filePath)
+    fun scanProject(): Map<String, List<StylelintMessage>> {
+        val locator = project.getService(ExternalToolLocator::class.java)
+        val stylelintPath = locator.locate("stylelint") ?: return emptyMap()
 
-            logger.info("Running Stylelint: ${command.joinToString(" ")}")
+        val basePath = project.basePath ?: return emptyMap()
+        val files = collectFiles(basePath, cssExtensions)
+        if (files.isEmpty()) return emptyMap()
+
+        logger.info("Stylelint scanning ${files.size} files...")
+        val results = mutableMapOf<String, List<StylelintMessage>>()
+        for (batch in files.chunked(50)) {
+            val batchResults = executeStylelint(stylelintPath, batch)
+            results.putAll(batchResults)
+        }
+        logger.info("Stylelint scan complete: ${results.values.sumOf { it.size }} issues in ${results.size} files")
+        return results
+    }
+
+    private fun executeStylelint(stylelintPath: String, filePaths: List<String>): Map<String, List<StylelintMessage>> {
+        try {
+            val command = mutableListOf(stylelintPath, "--formatter", "json")
+            command.addAll(filePaths)
+
+            logger.info("Running Stylelint on ${filePaths.size} file(s)")
 
             val process = ProcessBuilder(command)
-                .directory(java.io.File(project.basePath))
+                .directory(File(project.basePath))
                 .redirectErrorStream(true)
                 .start()
 
             val output = BufferedReader(InputStreamReader(process.inputStream)).readText()
-            val exited = process.waitFor(30, TimeUnit.SECONDS)
+            val exited = process.waitFor(60, TimeUnit.SECONDS)
             if (!exited) {
                 process.destroyForcibly()
                 logger.warn("Stylelint process killed after timeout")
@@ -55,35 +76,36 @@ class StylelintRunner(private val project: Project) {
             val exitCode = process.exitValue()
             logger.info("Stylelint exit code: $exitCode, output length: ${output.length}")
 
-            // exit code 0 = no issues, 1 = issues found, 2 = fatal error
             if (exitCode == 2) {
                 logger.warn("Stylelint fatal error: ${output.take(500)}")
-                return emptyList()
+                return emptyMap()
             }
 
             return parseOutput(output)
         } catch (e: Exception) {
             logger.warn("Stylelint execution error", e)
-            return emptyList()
+            return emptyMap()
         }
     }
 
-    fun parseOutput(output: String): List<StylelintMessage> {
-        val results = mutableListOf<StylelintMessage>()
+    fun parseOutput(output: String): Map<String, List<StylelintMessage>> {
+        val results = mutableMapOf<String, List<StylelintMessage>>()
         try {
             val trimmed = output.trim()
             if (!trimmed.startsWith("[")) {
                 logger.warn("Stylelint output does not start with '[': ${trimmed.take(200)}")
-                return emptyList()
+                return emptyMap()
             }
 
             val jsonArray = JsonParser.parseString(trimmed).asJsonArray
             for (fileElement in jsonArray) {
                 val fileObj = fileElement.asJsonObject
+                val source = fileObj.get("source")?.takeIf { !it.isJsonNull }?.asString ?: continue
                 val warnings = fileObj.getAsJsonArray("warnings") ?: continue
+                val msgList = mutableListOf<StylelintMessage>()
                 for (msgElement in warnings) {
                     val msgObj = msgElement.asJsonObject
-                    results.add(StylelintMessage(
+                    msgList.add(StylelintMessage(
                         rule = msgObj.get("rule")?.takeIf { !it.isJsonNull }?.asString ?: "",
                         severity = msgObj.get("severity")?.takeIf { !it.isJsonNull }?.asString ?: "warning",
                         text = msgObj.get("text")?.takeIf { !it.isJsonNull }?.asString ?: "",
@@ -91,12 +113,34 @@ class StylelintRunner(private val project: Project) {
                         column = msgObj.get("column")?.takeIf { !it.isJsonNull }?.asInt ?: 1
                     ))
                 }
+                if (msgList.isNotEmpty()) {
+                    results[source] = msgList
+                }
             }
-            logger.info("Stylelint parsed ${results.size} messages")
+            logger.info("Stylelint parsed ${results.values.sumOf { it.size }} messages in ${results.size} files")
         } catch (e: Exception) {
             logger.warn("Failed to parse Stylelint output: ${output.take(200)}", e)
         }
         return results
+    }
+
+    private fun collectFiles(basePath: String, extensions: Set<String>): List<String> {
+        val files = mutableListOf<String>()
+        walkFiles(File(basePath), extensions, files)
+        return files
+    }
+
+    private fun walkFiles(dir: File, extensions: Set<String>, result: MutableList<String>) {
+        val children = dir.listFiles() ?: return
+        for (child in children) {
+            if (child.isDirectory) {
+                if (child.name !in excludedDirs) {
+                    walkFiles(child, extensions, result)
+                }
+            } else if (child.extension in extensions) {
+                result.add(child.absolutePath)
+            }
+        }
     }
 
     companion object {

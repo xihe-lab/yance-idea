@@ -15,6 +15,8 @@ class CheckstyleRunner(private val project: Project) {
 
     private val logger = Logger.getInstance("YanceLint.CheckstyleRunner")
 
+    private val excludedDirs = setOf("node_modules", ".git", "build", "dist", "out", ".idea", ".gradle")
+
     data class CheckstyleViolation(
         val file: String,
         val line: Int,
@@ -23,6 +25,45 @@ class CheckstyleRunner(private val project: Project) {
         val message: String,
         val source: String
     )
+
+    fun scanProject(): Map<String, List<CheckstyleViolation>> {
+        val basePath = project.basePath ?: return emptyMap()
+        val candidates = listOf("checkstyle.xml", "config/checkstyle.xml", "checkstyle/checkstyle.xml")
+        val configFile = candidates.map { java.io.File(basePath, it) }.firstOrNull { it.exists() } ?: return emptyMap()
+
+        val files = collectJavaFiles(java.io.File(basePath))
+        if (files.isEmpty()) return emptyMap()
+
+        logger.info("Checkstyle scanning ${files.size} files...")
+        val results = mutableMapOf<String, List<CheckstyleViolation>>()
+        for (batch in files.chunked(50)) {
+            for (file in batch) {
+                val violations = executeCheckstyle(configFile.absolutePath, file)
+                if (violations.isNotEmpty()) {
+                    results[file] = violations
+                }
+            }
+        }
+        logger.info("Checkstyle scan complete: ${results.values.sumOf { it.size }} issues in ${results.size} files")
+        return results
+    }
+
+    private fun collectJavaFiles(dir: java.io.File): List<String> {
+        val files = mutableListOf<String>()
+        walkJavaFiles(dir, files)
+        return files
+    }
+
+    private fun walkJavaFiles(dir: java.io.File, result: MutableList<String>) {
+        val children = dir.listFiles() ?: return
+        for (child in children) {
+            if (child.isDirectory) {
+                if (child.name !in excludedDirs) walkJavaFiles(child, result)
+            } else if (child.extension == "java") {
+                result.add(child.absolutePath)
+            }
+        }
+    }
 
     fun check(file: VirtualFile): List<CheckstyleViolation> {
         val configParser = CheckstyleConfigParser(project)
