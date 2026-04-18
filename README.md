@@ -4,6 +4,7 @@
 [![JetBrains Marketplace](https://img.shields.io/badge/JetBrains-Marketplace-blue)](https://plugins.jetbrains.com/plugin/31337)
 [![Install Plugin](https://img.shields.io/badge/Install-EAP-orange)](https://plugins.jetbrains.com/embeddable/install/31337)
 [![MCP Server](https://img.shields.io/badge/MCP-Server-green)](https://github.com/xihe-lab/yance-mcp-server)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 YanceLint 是一个企业级代码规约检查 IntelliJ IDEA 插件，支持 **P3C / ESLint / Stylelint / Checkstyle** 四种规约引擎，并通过 MCP Server 让 AI（Claude Code）实时感知代码规约违规。
 
