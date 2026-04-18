@@ -31,6 +31,7 @@ dependencies {
         bundledPlugin("org.jetbrains.kotlin")
         bundledPlugin("JavaScript")
         bundledPlugin("org.intellij.plugins.markdown")
+        bundledPlugin("com.intellij.css")
     }
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
