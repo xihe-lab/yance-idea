@@ -16,7 +16,8 @@ class LongLiteralsEndingWithLowercaseLInspection : LocalInspectionTool() {
                 if (value !is Long) return
                 val text = expression.text
                 if (text.endsWith('l') && !text.endsWith('L')) {
-                    holder.registerProblem(
+                    P3cProblemHelper.register(
+                        holder,
                         expression,
                         "long 型常量应使用大写 L 结尾，避免与数字 1 混淆",
                     )

@@ -13,6 +13,16 @@
         <externalAnnotator language="CSS"
                            implementationClass="com.xihe_lab.yance.idea.stylelint.StylelintAnnotator"
         />
+        <!-- Gutter Icons -->
+        <codeInsight.lineMarkerProvider language="JavaScript"
+                                        implementationClass="com.xihe_lab.yance.idea.lint.gutter.YanceGutterLineMarkerProvider"
+        />
+        <codeInsight.lineMarkerProvider language="TypeScript"
+                                        implementationClass="com.xihe_lab.yance.idea.lint.gutter.YanceGutterLineMarkerProvider"
+        />
+        <codeInsight.lineMarkerProvider language="CSS"
+                                        implementationClass="com.xihe_lab.yance.idea.lint.gutter.YanceGutterLineMarkerProvider"
+        />
     </extensions>
 
 </idea-plugin>

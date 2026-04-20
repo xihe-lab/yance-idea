@@ -88,6 +88,10 @@
         <externalAnnotator language="JAVA"
                            implementationClass="com.xihe_lab.yance.idea.checkstyle.CheckstyleAnnotator"
         />
+        <!-- Gutter Icon -->
+        <codeInsight.lineMarkerProvider language="JAVA"
+                                        implementationClass="com.xihe_lab.yance.idea.lint.gutter.YanceGutterLineMarkerProvider"
+        />
     </extensions>
 
 </idea-plugin>

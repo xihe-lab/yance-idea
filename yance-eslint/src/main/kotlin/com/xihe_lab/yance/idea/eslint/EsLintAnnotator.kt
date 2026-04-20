@@ -5,6 +5,7 @@ import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
+import com.xihe_lab.yance.service.ViolationCache
 
 class EsLintAnnotator : ExternalAnnotator<EsLintAnnotator.State, EsLintAnnotator.Result>() {
 
@@ -53,5 +54,24 @@ class EsLintAnnotator : ExternalAnnotator<EsLintAnnotator.State, EsLintAnnotator
                 .range(TextRange(startOffset, endOffset))
                 .create()
         }
+
+        val cache = ViolationCache.getInstance(file.project)
+        val violations = result.messages.map { msg ->
+            val sev = EsLintRunner.mapSeverity(msg.severity)
+            ViolationCache.CachedViolation(
+                message = msg.message,
+                severity = when (sev) {
+                    com.xihe_lab.yance.model.RuleSeverity.ERROR -> ViolationCache.Severity.ERROR
+                    else -> ViolationCache.Severity.WARNING
+                },
+                tool = "ESLint",
+                filePath = result.filePath,
+                line = msg.line,
+                column = msg.column,
+                ruleId = msg.ruleId
+            )
+        }
+        cache.put(result.filePath, violations, document.modificationStamp)
+        logger.warn("ESLint: cached ${violations.size} violations for ${result.filePath}, stamp=${document.modificationStamp}")
     }
 }

@@ -26,7 +26,8 @@ class MissingOverrideAnnotationInspection : LocalInspectionTool() {
 
                 // 检查是否实际覆写了父类方法
                 if (isOverrideMethod(method)) {
-                    holder.registerProblem(
+                    P3cProblemHelper.register(
+                        holder,
                         method.nameIdentifier!!,
                         "覆写方法必须加 @Override 注解",
                     )

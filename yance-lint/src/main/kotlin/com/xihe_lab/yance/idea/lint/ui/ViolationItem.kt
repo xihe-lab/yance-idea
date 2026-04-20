@@ -6,7 +6,8 @@ data class ViolationItem(
     val tool: String,
     val filePath: String,
     val line: Int,
-    val column: Int = 0
+    val column: Int = 0,
+    val ruleId: String? = null
 ) {
     enum class Severity { ERROR, WARNING, INFO }
 }

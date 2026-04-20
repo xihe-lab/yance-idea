@@ -23,7 +23,8 @@ class AccessStaticViaInstanceInspection : LocalInspectionTool() {
                 }
 
                 val className = resolved.containingClass?.qualifiedName ?: resolved.containingClass?.name ?: return
-                holder.registerProblem(
+                P3cProblemHelper.register(
+                    holder,
                     expression,
                     "避免通过实例访问静态成员，应使用 $className.${resolved.name} 直接访问",
                 )

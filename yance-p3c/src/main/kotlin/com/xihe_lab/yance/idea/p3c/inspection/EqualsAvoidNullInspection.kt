@@ -29,7 +29,8 @@ class EqualsAvoidNullInspection : LocalInspectionTool() {
                 if (argument is PsiLiteralExpression || isConstantField(argument)) {
                     val target = methodExpression.qualifierExpression
                     if (target !is PsiLiteralExpression && !isConstantField(target ?: return)) {
-                        holder.registerProblem(
+                        P3cProblemHelper.register(
+                            holder,
                             expression,
                             "建议使用 \"常量\".equals(变量) 的方式，避免 NPE",
                         )

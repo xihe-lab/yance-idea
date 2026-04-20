@@ -28,7 +28,8 @@ class DeprecationInspection : LocalInspectionTool() {
                         is PsiField -> "${element.containingClass?.name}.${element.name}"
                         else -> return
                     }
-                    holder.registerProblem(
+                    P3cProblemHelper.register(
+                        holder,
                         reference,
                         "不应使用已过时的 API: $name",
                     )

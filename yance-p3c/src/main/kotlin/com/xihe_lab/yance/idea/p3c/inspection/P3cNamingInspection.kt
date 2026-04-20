@@ -1,10 +1,9 @@
 package com.xihe_lab.yance.idea.p3c.inspection
 
 import com.intellij.codeInspection.LocalInspectionTool
-import com.intellij.codeInspection.ProblemDescriptor
-import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.*
+import com.xihe_lab.yance.idea.p3c.inspection.P3cProblemHelper.register
 
 class P3cNamingInspection : LocalInspectionTool() {
 
@@ -25,7 +24,7 @@ class P3cNamingInspection : LocalInspectionTool() {
         val nameIdentifier = element.nameIdentifier ?: return
         val name = element.name ?: return
         if (!isUpperCamelCase(name)) {
-            holder.registerProblem(nameIdentifier, "类名应使用 UpperCamelCase", ProblemHighlightType.GENERIC_ERROR_OR_WARNING)
+            register(holder, nameIdentifier, "类名应使用 UpperCamelCase")
         }
     }
 
@@ -33,7 +32,7 @@ class P3cNamingInspection : LocalInspectionTool() {
         val nameIdentifier = element.nameIdentifier ?: return
         val name = element.name ?: return
         if (!isLowerCamelCase(name)) {
-            holder.registerProblem(nameIdentifier, "方法名应使用 lowerCamelCase", ProblemHighlightType.GENERIC_ERROR_OR_WARNING)
+            register(holder, nameIdentifier, "方法名应使用 lowerCamelCase")
         }
     }
 
@@ -42,7 +41,7 @@ class P3cNamingInspection : LocalInspectionTool() {
         val nameIdentifier = element.nameIdentifier ?: return
         val name = element.name ?: return
         if (!isConstantCase(name)) {
-            holder.registerProblem(nameIdentifier, "常量应使用 CONSTANT_CASE (全大写下划线分隔)", ProblemHighlightType.GENERIC_ERROR_OR_WARNING)
+            register(holder, nameIdentifier, "常量应使用 CONSTANT_CASE (全大写下划线分隔)")
         }
     }
 

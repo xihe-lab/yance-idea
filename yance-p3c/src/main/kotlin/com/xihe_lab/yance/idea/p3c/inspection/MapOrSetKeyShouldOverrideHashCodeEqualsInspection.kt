@@ -30,7 +30,8 @@ class MapOrSetKeyShouldOverrideHashCodeEqualsInspection : LocalInspectionTool() 
                         !hasHashCode -> "hashCode"
                         else -> "equals"
                     }
-                    holder.registerProblem(
+                    P3cProblemHelper.register(
+                        holder,
                         aClass.nameIdentifier ?: return,
                         "作为 ${if (usedAsMapKey) "Map 键" else "Set 元素"} 的类必须重写 $missing",
                     )

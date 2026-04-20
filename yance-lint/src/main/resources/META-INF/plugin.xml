@@ -87,6 +87,7 @@
         />
         <notificationGroup id="YanceLint Notifications" displayType="BALLOON" />
         <projectService serviceImplementation="com.xihe_lab.yance.idea.server.LintHttpServer" />
+        <projectService serviceImplementation="com.xihe_lab.yance.service.ViolationCache" />
         <postStartupActivity implementation="com.xihe_lab.yance.idea.server.ServerStartupActivity" />
     </extensions>
 

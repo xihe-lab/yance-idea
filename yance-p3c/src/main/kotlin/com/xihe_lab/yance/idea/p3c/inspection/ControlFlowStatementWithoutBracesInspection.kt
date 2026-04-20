@@ -34,7 +34,7 @@ class ControlFlowStatementWithoutBracesInspection : LocalInspectionTool() {
             private fun checkBranch(body: PsiStatement?, keyword: String) {
                 if (body == null) return
                 if (body is PsiBlockStatement) return
-                holder.registerProblem(body, "$keyword 语句体必须使用大括号")
+                P3cProblemHelper.register(holder, body, "$keyword 语句体必须使用大括号")
             }
         }
     }

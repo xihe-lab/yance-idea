@@ -5,6 +5,7 @@ import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
+import com.xihe_lab.yance.service.ViolationCache
 
 class StylelintAnnotator : ExternalAnnotator<StylelintAnnotator.State, StylelintAnnotator.Result>() {
 
@@ -51,5 +52,23 @@ class StylelintAnnotator : ExternalAnnotator<StylelintAnnotator.State, Stylelint
                 .range(TextRange(startOffset, endOffset))
                 .create()
         }
+
+        val cache = ViolationCache.getInstance(file.project)
+        val violations = result.messages.map { msg ->
+            val sev = StylelintRunner.mapSeverity(msg.severity)
+            ViolationCache.CachedViolation(
+                message = msg.text,
+                severity = when (sev) {
+                    com.xihe_lab.yance.model.RuleSeverity.ERROR -> ViolationCache.Severity.ERROR
+                    else -> ViolationCache.Severity.WARNING
+                },
+                tool = "Stylelint",
+                filePath = result.filePath,
+                line = msg.line,
+                column = msg.column,
+                ruleId = msg.rule
+            )
+        }
+        cache.put(result.filePath, violations, document.modificationStamp)
     }
 }

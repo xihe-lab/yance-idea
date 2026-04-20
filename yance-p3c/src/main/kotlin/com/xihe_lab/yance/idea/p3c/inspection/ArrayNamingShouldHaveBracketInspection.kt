@@ -30,7 +30,8 @@ class ArrayNamingShouldHaveBracketInspection : LocalInspectionTool() {
                 // 检查 [] 是否紧跟类型（而非变量名后）
                 val typeText = typeElement.text
                 if (!typeText.contains("[]")) {
-                    holder.registerProblem(
+                    P3cProblemHelper.register(
+                        holder,
                         nameIdentifier,
                         "数组声明应使用 Type[] name 形式，而非 Type name[] 形式",
                     )

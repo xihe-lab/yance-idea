@@ -5,6 +5,7 @@ import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
+import com.xihe_lab.yance.service.ViolationCache
 
 class CheckstyleAnnotator : ExternalAnnotator<CheckstyleAnnotator.State, CheckstyleAnnotator.Result>() {
 
@@ -53,5 +54,25 @@ class CheckstyleAnnotator : ExternalAnnotator<CheckstyleAnnotator.State, Checkst
                 .range(TextRange(startOffset, endOffset))
                 .create()
         }
+
+        val cache = ViolationCache.getInstance(file.project)
+        val filePath = file.virtualFile?.path ?: return
+        val violations = result.violations.map { v ->
+            val sev = CheckstyleRunner.mapSeverity(v.severity)
+            ViolationCache.CachedViolation(
+                message = v.message,
+                severity = when (sev) {
+                    com.xihe_lab.yance.model.RuleSeverity.ERROR -> ViolationCache.Severity.ERROR
+                    com.xihe_lab.yance.model.RuleSeverity.INFO -> ViolationCache.Severity.INFO
+                    else -> ViolationCache.Severity.WARNING
+                },
+                tool = "Checkstyle",
+                filePath = filePath,
+                line = v.line,
+                column = v.column,
+                ruleId = v.source
+            )
+        }
+        cache.put(filePath, violations, document.modificationStamp)
     }
 }

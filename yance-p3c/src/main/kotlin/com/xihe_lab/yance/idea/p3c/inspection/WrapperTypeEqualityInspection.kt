@@ -18,7 +18,8 @@ class WrapperTypeEqualityInspection : LocalInspectionTool() {
                 val rhs = expression.rOperand ?: return
                 val lhs = expression.lOperand
                 if (!isWrapperType(lhs) || !isWrapperType(rhs)) return
-                holder.registerProblem(
+                P3cProblemHelper.register(
+                    holder,
                     expression.operationSign,
                     "包装类型间的相等判断应使用 equals 方法，而不是 == ",
                 )
