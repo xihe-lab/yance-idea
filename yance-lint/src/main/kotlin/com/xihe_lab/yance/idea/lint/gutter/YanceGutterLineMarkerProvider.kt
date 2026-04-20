@@ -2,7 +2,9 @@ package com.xihe_lab.yance.idea.lint.gutter
 
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerProvider
-import com.intellij.openapi.diagnostic.Logger
+import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerEx
+import com.intellij.codeInsight.daemon.impl.HighlightInfo
+import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
@@ -12,8 +14,6 @@ import com.xihe_lab.yance.service.ViolationCache
 import javax.swing.Icon
 
 class YanceGutterLineMarkerProvider : RelatedItemLineMarkerProvider() {
-
-    private val logger = Logger.getInstance("YanceLint.Gutter")
 
     override fun collectSlowLineMarkers(
         elements: List<PsiElement>,
@@ -27,8 +27,12 @@ class YanceGutterLineMarkerProvider : RelatedItemLineMarkerProvider() {
         val document = PsiDocumentManager.getInstance(project).getDocument(file) ?: return
 
         val cache = ViolationCache.getInstance(project)
-        val allViolations = cache.get(filePath, document.modificationStamp)
-        if (allViolations.isNullOrEmpty()) return
+        val cachedViolations = cache.get(filePath, document.modificationStamp).orEmpty()
+        val editorHighlights = readEditorHighlights(document, project, filePath)
+        val allViolations = (cachedViolations + editorHighlights)
+            .distinctBy { it.line to it.message }
+
+        if (allViolations.isEmpty()) return
 
         val violationsByLine = allViolations.groupBy { it.line }
         val markedLines = mutableSetOf<Int>()
@@ -54,6 +58,37 @@ class YanceGutterLineMarkerProvider : RelatedItemLineMarkerProvider() {
                 )
             )
         }
+    }
+
+    private fun readEditorHighlights(
+        document: com.intellij.openapi.editor.Document,
+        project: Project,
+        filePath: String
+    ): List<ViolationCache.CachedViolation> {
+        val violations = mutableListOf<ViolationCache.CachedViolation>()
+        DaemonCodeAnalyzerEx.processHighlights(
+            document, project, HighlightSeverity.WARNING,
+            0, document.textLength
+        ) { info: HighlightInfo ->
+            val line = document.getLineNumber(info.startOffset) + 1
+            val severity = when {
+                info.severity == HighlightSeverity.ERROR -> ViolationCache.Severity.ERROR
+                info.severity == HighlightSeverity.WARNING -> ViolationCache.Severity.WARNING
+                else -> ViolationCache.Severity.INFO
+            }
+            violations.add(
+                ViolationCache.CachedViolation(
+                    message = info.description ?: "Unknown",
+                    severity = severity,
+                    tool = info.inspectionToolId ?: "Editor",
+                    filePath = filePath,
+                    line = line,
+                    ruleId = info.inspectionToolId
+                )
+            )
+            true
+        }
+        return violations
     }
 
     private fun getIcon(violations: List<ViolationCache.CachedViolation>): Icon {
