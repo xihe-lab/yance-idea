@@ -1,5 +1,4 @@
 <idea-plugin>
-    <depends>com.intellij.css</depends>
     <extensions defaultExtensionNs="com.intellij">
         <!-- ESLint Annotator -->
         <externalAnnotator language="JavaScript"

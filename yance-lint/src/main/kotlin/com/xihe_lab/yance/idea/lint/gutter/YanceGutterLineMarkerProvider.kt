@@ -11,9 +11,13 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.xihe_lab.yance.idea.lint.ui.YanceLintIcons
 import com.xihe_lab.yance.service.ViolationCache
+import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
 import javax.swing.Icon
 
 class YanceGutterLineMarkerProvider : RelatedItemLineMarkerProvider() {
+
+    private val markedLinesByFile = ConcurrentHashMap<String, Pair<Long, MutableSet<Int>>>()
 
     override fun collectSlowLineMarkers(
         elements: List<PsiElement>,
@@ -25,17 +29,23 @@ class YanceGutterLineMarkerProvider : RelatedItemLineMarkerProvider() {
         val virtualFile = file.virtualFile ?: return
         val filePath = virtualFile.path
         val document = PsiDocumentManager.getInstance(project).getDocument(file) ?: return
+        val stamp = document.modificationStamp
 
         val cache = ViolationCache.getInstance(project)
-        val cachedViolations = cache.get(filePath, document.modificationStamp).orEmpty()
+        val cachedViolations = cache.get(filePath, stamp).orEmpty()
+        val cachedLines = cachedViolations.map { it.line }.toSet()
         val editorHighlights = readEditorHighlights(document, project, filePath)
-        val allViolations = (cachedViolations + editorHighlights)
-            .distinctBy { it.line to it.message }
+            .filter { it.line !in cachedLines }
+        val allViolations = cachedViolations + editorHighlights
 
         if (allViolations.isEmpty()) return
 
         val violationsByLine = allViolations.groupBy { it.line }
-        val markedLines = mutableSetOf<Int>()
+
+        val markedLines = markedLinesByFile.compute(filePath) { _, existing ->
+            if (existing != null && existing.first == stamp) existing
+            else stamp to Collections.synchronizedSet(mutableSetOf())
+        }!!.second
 
         for (element in elements) {
             val lineNumber = document.getLineNumber(element.textRange.startOffset)
