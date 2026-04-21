@@ -92,7 +92,7 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
 
         for (tool in toolDescriptors) {
             val available = try {
-                Class.forName(tool.scannerClass, false, javaClass.classLoader)
+                Class.forName(tool.scannerClass, false, YanceLintToolWindowFactory::class.java.classLoader)
                 true
             } catch (_: Throwable) {
                 false
@@ -147,7 +147,7 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
 
                         val items = mutableListOf<ViolationItem>()
                         try {
-                            val scannerClazz = Class.forName(tool.scannerClass, false, javaClass.classLoader)
+                            val scannerClazz = Class.forName(tool.scannerClass, false, YanceLintToolWindowFactory::class.java.classLoader)
                             logger.info("${tool.name}: class loaded, creating instance...")
                             val instance = getInstance(project, scannerClazz)
                             logger.info("${tool.name}: instance created: ${instance.javaClass.name}")
@@ -365,7 +365,7 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
                     appendLine("--- 扫描器检查 ---")
                     for (tool in toolDescriptors) {
                         try {
-                            val clazz = Class.forName(tool.scannerClass, false, javaClass.classLoader)
+                            val clazz = Class.forName(tool.scannerClass, false, YanceLintToolWindowFactory::class.java.classLoader)
                             appendLine("[OK] ${tool.name}: 类已加载 (${clazz.classLoader})")
                             try {
                                 val instance = getInstance(project, clazz)
