@@ -332,11 +332,15 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
             add(statusLabel)
         }
 
+        val centerPanel = JPanel(BorderLayout()).apply {
+            add(progressBar, BorderLayout.NORTH)
+            add(tabbedPane, BorderLayout.CENTER)
+        }
+
         return JPanel().apply {
             layout = BorderLayout()
             add(toolBar, BorderLayout.NORTH)
-            add(progressBar, BorderLayout.CENTER)
-            add(tabbedPane, BorderLayout.SOUTH)
+            add(centerPanel, BorderLayout.CENTER)
         }
     }
 
