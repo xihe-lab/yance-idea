@@ -27,8 +27,9 @@ dependencies {
     implementation(project(":yance-checkstyle"))
 
     intellijPlatform {
-        intellijIdea(providers.gradleProperty("platformVersion"))
-        bundledPlugin("org.jetbrains.kotlin")
+//        intellijIdea(providers.gradleProperty("platformVersion"))
+        webstorm(providers.gradleProperty("platformVersion"))
+//        bundledPlugin("org.jetbrains.kotlin")
         bundledPlugin("org.intellij.plugins.markdown")
     }
 

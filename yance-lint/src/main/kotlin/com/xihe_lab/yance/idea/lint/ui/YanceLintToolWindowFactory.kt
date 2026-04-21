@@ -333,12 +333,110 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
             }
         }
 
+        val diagButton = JButton("诊断").apply {
+            toolTipText = "检查运行环境是否正常"
+            addActionListener {
+                val report = buildString {
+                    appendLine("=== YanceLint 诊断报告 ===")
+                    appendLine("Project: ${project.name}")
+                    appendLine("BasePath: ${project.basePath}")
+                    appendLine()
+
+                    // Check service availability
+                    appendLine("--- 服务检查 ---")
+                    for (svc in listOf(
+                        "ExternalToolLocator" to "com.xihe_lab.yance.engine.ExternalToolLocator",
+                        "ViolationCache" to "com.xihe_lab.yance.service.ViolationCache",
+                        "LintHttpServer" to "com.xihe_lab.yance.idea.server.LintHttpServer",
+                        "YanceLintSettings" to "com.xihe_lab.yance.idea.lint.settings.YanceLintSettings"
+                    )) {
+                        try {
+                            val clazz = Class.forName(svc.second)
+                            val method = Project::class.java.getMethod("getService", Class::class.java)
+                            val instance = method.invoke(project, clazz)
+                            appendLine("[OK] ${svc.first}: ${if (instance != null) "已获取" else "返回 null"}")
+                        } catch (e: Throwable) {
+                            appendLine("[FAIL] ${svc.first}: ${e.javaClass.simpleName}: ${e.message}")
+                        }
+                    }
+                    appendLine()
+
+                    // Check scanner availability
+                    appendLine("--- 扫描器检查 ---")
+                    for (tool in toolDescriptors) {
+                        try {
+                            val clazz = Class.forName(tool.scannerClass, false, javaClass.classLoader)
+                            appendLine("[OK] ${tool.name}: 类已加载 (${clazz.classLoader})")
+                            try {
+                                val instance = getInstance(project, clazz)
+                                appendLine("[OK] ${tool.name}: 实例已创建 (${instance.javaClass.simpleName})")
+                            } catch (e: Throwable) {
+                                appendLine("[FAIL] ${tool.name}: 创建实例失败 - ${e.javaClass.simpleName}: ${e.message}")
+                            }
+                        } catch (e: Throwable) {
+                            appendLine("[FAIL] ${tool.name}: 类加载失败 - ${e.javaClass.simpleName}: ${e.message}")
+                        }
+                    }
+                    appendLine()
+
+                    // Check ESLint/Stylelint binary
+                    appendLine("--- 工具二进制 ---")
+                    try {
+                        val locatorClass = Class.forName("com.xihe_lab.yance.engine.ExternalToolLocator")
+                        val method = Project::class.java.getMethod("getService", Class::class.java)
+                        val locator = method.invoke(project, locatorClass)
+                        if (locator != null) {
+                            val locateMethod = locatorClass.getMethod("locate", String::class.java)
+                            for (toolName in listOf("eslint", "stylelint")) {
+                                val path = locateMethod.invoke(locator, toolName)
+                                appendLine("[${if (path != null) "OK" else "MISSING"}] $toolName: ${path ?: "未找到"}")
+                            }
+                        } else {
+                            appendLine("[FAIL] ExternalToolLocator: null")
+                        }
+                    } catch (e: Throwable) {
+                        appendLine("[FAIL] 工具定位: ${e.javaClass.simpleName}: ${e.message}")
+                    }
+                    appendLine()
+
+                    // Check optional configs
+                    appendLine("--- 可选配置 ---")
+                    val jsPlugin = try {
+                        val pm = Class.forName("com.intellij.ide.plugins.PluginManagerCore")
+                        pm.getMethod("getPlugin", Class.forName("com.intellij.ide.plugins.IdeaPluginDescriptor"))
+                    } catch (_: Throwable) { null }
+                    appendLine("JavaScript plugin loaded: checking...")
+                    try {
+                        val pluginIdClass = Class.forName("com.intellij.openapi.extensions.PluginId")
+                        val findId = pluginIdClass.getMethod("findId", String::class.java)
+                        val jsId = findId.invoke(null, "JavaScript")
+                        appendLine("JavaScript PluginId: ${jsId ?: "NOT FOUND"}")
+                    } catch (e: Throwable) {
+                        appendLine("JavaScript plugin check: ${e.javaClass.simpleName}: ${e.message}")
+                    }
+                }
+
+                val textArea = javax.swing.JTextArea(report).apply {
+                    isEditable = false
+                    font = font.deriveFont(12f)
+                    rows = 20
+                    columns = 60
+                }
+                val scrollPane = JScrollPane(textArea)
+                JOptionPane.showMessageDialog(
+                    null, scrollPane, "YanceLint 诊断报告",
+                    JOptionPane.INFORMATION_MESSAGE
+                )
+            }
+        }
+
         val toolBar = JPanel().apply {
             layout = FlowLayout(FlowLayout.LEFT, 4, 4)
             add(scanButton)
             add(clearButton)
             add(copyButton)
             add(batchFixButton)
+            add(diagButton)
             add(Box.createHorizontalStrut(8))
             add(JLabel("Severity:"))
             add(severityFilter)
