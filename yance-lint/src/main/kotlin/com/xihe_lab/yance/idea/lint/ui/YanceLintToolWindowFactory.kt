@@ -140,28 +140,18 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
                     val items = mutableListOf<ViolationItem>()
                     try {
                         val scannerClazz = Class.forName(tool.scannerClass, false, javaClass.classLoader)
-                        val instance = scannerClazz.getConstructor(Project::class.java).newInstance(project)
+                        val instance = getInstance(project, scannerClazz)
 
                         @Suppress("UNCHECKED_CAST")
                         val results: Map<String, List<Any>> = try {
                             val scanMethod = scannerClazz.getMethod("scanProject")
                             scanMethod.invoke(instance) as Map<String, List<Any>>
-                        } catch (_: Throwable) {
-                            try {
-                                val serviceClazz = Class.forName(
-                                    "com.intellij.openapi.components.ServiceManager",
-                                    false, javaClass.classLoader
-                                )
-                                val getService = serviceClazz.getMethod(
-                                    "getService", Project::class.java, Class::class.java
-                                )
-                                val service = getService.invoke(null, project, scannerClazz)
-                                val scanMethod = scannerClazz.getMethod("scanProject")
-                                scanMethod.invoke(service) as Map<String, List<Any>>
-                            } catch (_: Throwable) {
-                                emptyMap()
-                            }
+                        } catch (e: Throwable) {
+                            logger.warn("${tool.name} scanProject failed, trying service lookup", e)
+                            emptyMap()
                         }
+
+                        logger.info("${tool.name} scan returned ${results.size} files, ${results.values.sumOf { it.size }} violations")
 
                         for ((file, violations) in results) {
                             for (v in violations) {
@@ -179,16 +169,27 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
                         logger.warn("${tool.name} scan failed", e)
                     }
 
+                    val toolItems = items
+                    val toolErrors = items.count { it.severity == ViolationItem.Severity.ERROR }
+                    val toolWarnings = items.count { it.severity == ViolationItem.Severity.WARNING }
                     ApplicationManager.getApplication().invokeLater {
                         val model = listModels[tool.name] ?: return@invokeLater
-                        allItems[tool.name] = items.toMutableList()
+                        allItems[tool.name] = toolItems.toMutableList()
                         model.clear()
-                        for (item in items) model.addElement(item)
+                        for (item in toolItems) model.addElement(item)
 
                         val tabIdx = toolDescriptors.indexOf(tool)
                         val container = tabbedPane.getComponentAt(tabIdx) as? JPanel
-                        if (items.isNotEmpty()) {
+                        if (toolItems.isNotEmpty()) {
                             (container?.layout as? CardLayout)?.show(container, "results")
+                        } else {
+                            // Show "no issues" instead of keeping placeholder
+                            if (container?.layout is CardLayout) {
+                                val scrollPane = container.components.firstOrNull { it is JScrollPane }
+                                if (scrollPane != null) {
+                                    (container.layout as CardLayout).show(container, "results")
+                                }
+                            }
                         }
                         applyFilter()
                     }
@@ -375,6 +376,21 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
             val line = (item.line - 1).coerceIn(0, document.lineCount - 1)
             val offset = document.getLineStartOffset(line)
             editor.caretModel.moveToOffset(offset)
+        }
+    }
+
+    private fun getInstance(project: Project, clazz: Class<*>): Any {
+        // Try project.getService() first (correct for @Service classes)
+        return try {
+            val method = Project::class.java.getMethod("getService", Class::class.java)
+            method.invoke(project, clazz)!!
+        } catch (_: Throwable) {
+            // Fallback: construct directly
+            try {
+                clazz.getConstructor(Project::class.java).newInstance(project)
+            } catch (_: Throwable) {
+                clazz.getDeclaredConstructor().newInstance()
+            }
         }
     }
 
