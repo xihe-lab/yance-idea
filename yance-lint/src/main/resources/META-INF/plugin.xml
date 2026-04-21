@@ -58,15 +58,45 @@
     <!-- Change notes displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#change-notes -->
     <change-notes><![CDATA[
-        <h3>1.0.0</h3>
+        <h3>1.0.0-EAP.1</h3>
+        <h4>规约引擎</h4>
         <ul>
-            <li>多工具统一面板：P3C、ESLint、Stylelint、Checkstyle 扫描结果集中展示</li>
+            <li><b>P3C</b>：阿里巴巴 Java 开发手册，内置 12 条核心规则（命名规约、OOP 规约、集合处理、日期处理、并发处理等）</li>
+            <li><b>ESLint</b>：JavaScript/TypeScript 代码质量检查，自动发现项目 node_modules/.bin/eslint</li>
+            <li><b>Stylelint</b>：CSS/SCSS/LESS 样式检查，支持现代 CSS 特性</li>
+            <li><b>Checkstyle</b>：Java 代码风格检查，支持自定义 checkstyle.xml 配置</li>
+        </ul>
+        <h4>Tool Window</h4>
+        <ul>
+            <li>多工具统一面板：P3C、ESLint、Stylelint、Checkstyle 扫描结果按标签页分页展示</li>
             <li>结构化违规列表：左侧严重等级色条 + 双击跳转代码位置</li>
-            <li>项目级扫描：Tools → Scan YanceLint Rules（Shift+Alt+P）</li>
-            <li>气球通知：扫描完成后右下角通知，不再阻断式弹窗</li>
-            <li>品牌图标：墨律蓝 + 衍策金司南设计</li>
-            <li>MCP Server：内置 HTTP Server（端口 63742），支持 AI 实时获取规约违规</li>
-            <li>WebStorm 支持：Java 模块可选加载，ESLint/Stylelint 在 WebStorm 可用</li>
+            <li>过滤与搜索：按严重等级（Error/Warning/Info）筛选 + 关键词搜索</li>
+            <li>批量修复：一键自动修复当前工具标签页中所有违规文件（ESLint --fix / Stylelint --fix）</li>
+            <li>复制报告：一键复制当前工具的违规报告到剪贴板</li>
+            <li>诊断面板：检查运行环境、扫描器、工具二进制是否正常</li>
+        </ul>
+        <h4>编辑器集成</h4>
+        <ul>
+            <li>Gutter Icon：编辑器左侧行号旁显示规约违规图标，点击弹出违规详情面板</li>
+            <li>实时检查：编辑文件时自动触发规约检查，违规缓存 30 秒避免重复扫描</li>
+            <li>QuickFix：P3C 命名违规支持 Alt+Enter 快速修复（驼峰命名、常量命名）</li>
+        </ul>
+        <h4>AI 集成（MCP）</h4>
+        <ul>
+            <li>内置 HTTP Server（端口 63742），支持 AI 实时获取规约违规</li>
+            <li>MCP Server 优先读取编辑器违规缓存，无需重复扫描</li>
+            <li>支持 get_file_violations / get_project_summary / check_health 三个工具</li>
+        </ul>
+        <h4>操作入口</h4>
+        <ul>
+            <li>Tools → Scan YanceLint Rules（Shift+Alt+P）：项目级全量扫描</li>
+            <li>Tools → Review Code (YanceLint)：右键选中的文件/目录进行代码审查</li>
+            <li>Tools → Batch Fix (YanceLint)：右键选中的文件/目录批量自动修复</li>
+        </ul>
+        <h4>跨平台支持</h4>
+        <ul>
+            <li>IntelliJ IDEA：全部功能（P3C + ESLint + Stylelint + Checkstyle）</li>
+            <li>WebStorm：ESLint + Stylelint，自动发现 node 二进制路径（nvm/fnm/volta/homebrew）</li>
         </ul>
         ]]></change-notes>
 
