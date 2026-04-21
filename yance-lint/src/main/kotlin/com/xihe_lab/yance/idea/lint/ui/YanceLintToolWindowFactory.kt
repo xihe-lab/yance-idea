@@ -40,6 +40,7 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
     private fun createPanel(project: Project): JPanel {
         val tabbedPane = tabbedPane()
         val listModels = mutableMapOf<String, DefaultListModel<ViolationItem>>()
+        val allItems = mutableMapOf<String, MutableList<ViolationItem>>()
         val statusLabel = JLabel("就绪").apply { foreground = Color.GRAY }
         val progressBar = JProgressBar().apply {
             isIndeterminate = true
@@ -47,6 +48,44 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
             preferredSize = Dimension(0, 3)
             isVisible = false
         }
+
+        // Filter components
+        val severityFilter = JComboBox(arrayOf("All", "Error", "Warning", "Info"))
+        severityFilter.preferredSize = Dimension(100, severityFilter.preferredSize.height)
+        val searchField = com.intellij.ui.components.JBTextField().apply {
+            emptyText.text = "Search violations..."
+            preferredSize = Dimension(200, preferredSize.height)
+        }
+
+        fun applyFilter() {
+            val selectedSeverity = when (severityFilter.selectedIndex) {
+                1 -> ViolationItem.Severity.ERROR
+                2 -> ViolationItem.Severity.WARNING
+                3 -> ViolationItem.Severity.INFO
+                else -> null
+            }
+            val query = searchField.text.lowercase().trim()
+
+            for (tool in toolDescriptors) {
+                val model = listModels[tool.name] ?: continue
+                val items = allItems[tool.name] ?: continue
+                model.clear()
+                for (item in items) {
+                    if (selectedSeverity != null && item.severity != selectedSeverity) continue
+                    if (query.isNotEmpty() && !item.message.lowercase().contains(query)
+                        && !item.filePath.lowercase().contains(query)
+                        && !item.tool.lowercase().contains(query)) continue
+                    model.addElement(item)
+                }
+            }
+        }
+
+        severityFilter.addActionListener { applyFilter() }
+        searchField.document.addDocumentListener(object : javax.swing.event.DocumentListener {
+            override fun insertUpdate(e: javax.swing.event.DocumentEvent?) { applyFilter() }
+            override fun removeUpdate(e: javax.swing.event.DocumentEvent?) { applyFilter() }
+            override fun changedUpdate(e: javax.swing.event.DocumentEvent?) { applyFilter() }
+        })
 
         for (tool in toolDescriptors) {
             val available = try {
@@ -142,6 +181,7 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
 
                     ApplicationManager.getApplication().invokeLater {
                         val model = listModels[tool.name] ?: return@invokeLater
+                        allItems[tool.name] = items.toMutableList()
                         model.clear()
                         for (item in items) model.addElement(item)
 
@@ -150,6 +190,7 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
                         if (items.isNotEmpty()) {
                             (container?.layout as? CardLayout)?.show(container, "results")
                         }
+                        applyFilter()
                     }
                 }
 
@@ -208,7 +249,11 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
             add(scanButton)
             add(clearButton)
             add(copyButton)
-            add(Box.createHorizontalStrut(16))
+            add(Box.createHorizontalStrut(8))
+            add(JLabel("Severity:"))
+            add(severityFilter)
+            add(searchField)
+            add(Box.createHorizontalStrut(8))
             add(statusLabel)
         }
 
