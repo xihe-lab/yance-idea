@@ -4,6 +4,9 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.wm.ToolWindow
@@ -127,89 +130,100 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
             scanButton.isEnabled = false
             progressBar.isVisible = true
 
-            Thread {
-                var totalIssues = 0
-                var errors = 0
-                var warnings = 0
+            ProgressManager.getInstance().run(object : Task.Backgroundable(project, "YanceLint Scan", true) {
+                override fun run(indicator: ProgressIndicator) {
+                    var totalIssues = 0
+                    var errors = 0
+                    var warnings = 0
+                    val toolStatuses = mutableMapOf<String, String>()
 
-                for ((index, tool) in toolDescriptors.withIndex()) {
-                    ApplicationManager.getApplication().invokeLater {
-                        statusLabel.text = "正在扫描 ${tool.name}... (${index + 1}/${toolDescriptors.size})"
-                    }
+                    for ((index, tool) in toolDescriptors.withIndex()) {
+                        indicator.text = "Scanning ${tool.name}..."
+                        indicator.fraction = (index + 1.0) / toolDescriptors.size
 
-                    val items = mutableListOf<ViolationItem>()
-                    try {
-                        val scannerClazz = Class.forName(tool.scannerClass, false, javaClass.classLoader)
-                        val instance = getInstance(project, scannerClazz)
+                        ApplicationManager.getApplication().invokeLater {
+                            statusLabel.text = "正在扫描 ${tool.name}... (${index + 1}/${toolDescriptors.size})"
+                        }
 
-                        @Suppress("UNCHECKED_CAST")
-                        val results: Map<String, List<Any>> = try {
-                            val scanMethod = scannerClazz.getMethod("scanProject")
-                            scanMethod.invoke(instance) as Map<String, List<Any>>
+                        val items = mutableListOf<ViolationItem>()
+                        try {
+                            val scannerClazz = Class.forName(tool.scannerClass, false, javaClass.classLoader)
+                            logger.info("${tool.name}: class loaded, creating instance...")
+                            val instance = getInstance(project, scannerClazz)
+                            logger.info("${tool.name}: instance created: ${instance.javaClass.name}")
+
+                            @Suppress("UNCHECKED_CAST")
+                            val results: Map<String, List<Any>> = try {
+                                val scanMethod = scannerClazz.getMethod("scanProject")
+                                scanMethod.invoke(instance) as Map<String, List<Any>>
+                            } catch (e: Throwable) {
+                                logger.warn("${tool.name} scanProject() failed", e)
+                                emptyMap()
+                            }
+
+                            val violationCount = results.values.sumOf { it.size }
+                            logger.info("${tool.name}: found ${results.size} files, $violationCount violations")
+                            toolStatuses[tool.name] = "${results.size} files, $violationCount issues"
+
+                            for ((file, violations) in results) {
+                                for (v in violations) {
+                                    val item = extractViolation(v, tool.name, file)
+                                    items.add(item)
+                                    totalIssues++
+                                    when (item.severity) {
+                                        ViolationItem.Severity.ERROR -> errors++
+                                        ViolationItem.Severity.WARNING -> warnings++
+                                        else -> {}
+                                    }
+                                }
+                            }
                         } catch (e: Throwable) {
-                            logger.warn("${tool.name} scanProject failed, trying service lookup", e)
-                            emptyMap()
+                            logger.warn("${tool.name} scan failed", e)
+                            toolStatuses[tool.name] = "FAILED: ${e.message}"
                         }
 
-                        logger.info("${tool.name} scan returned ${results.size} files, ${results.values.sumOf { it.size }} violations")
+                        val toolItems = items
+                        ApplicationManager.getApplication().invokeLater {
+                            val model = listModels[tool.name] ?: return@invokeLater
+                            allItems[tool.name] = toolItems.toMutableList()
+                            model.clear()
+                            for (item in toolItems) model.addElement(item)
 
-                        for ((file, violations) in results) {
-                            for (v in violations) {
-                                val item = extractViolation(v, tool.name, file)
-                                items.add(item)
-                                totalIssues++
-                                when (item.severity) {
-                                    ViolationItem.Severity.ERROR -> errors++
-                                    ViolationItem.Severity.WARNING -> warnings++
-                                    else -> {}
-                                }
-                            }
-                        }
-                    } catch (e: Throwable) {
-                        logger.warn("${tool.name} scan failed", e)
-                    }
-
-                    val toolItems = items
-                    val toolErrors = items.count { it.severity == ViolationItem.Severity.ERROR }
-                    val toolWarnings = items.count { it.severity == ViolationItem.Severity.WARNING }
-                    ApplicationManager.getApplication().invokeLater {
-                        val model = listModels[tool.name] ?: return@invokeLater
-                        allItems[tool.name] = toolItems.toMutableList()
-                        model.clear()
-                        for (item in toolItems) model.addElement(item)
-
-                        val tabIdx = toolDescriptors.indexOf(tool)
-                        val container = tabbedPane.getComponentAt(tabIdx) as? JPanel
-                        if (toolItems.isNotEmpty()) {
+                            val tabIdx = toolDescriptors.indexOf(tool)
+                            val container = tabbedPane.getComponentAt(tabIdx) as? JPanel
                             (container?.layout as? CardLayout)?.show(container, "results")
-                        } else {
-                            // Show "no issues" instead of keeping placeholder
-                            if (container?.layout is CardLayout) {
-                                val scrollPane = container.components.firstOrNull { it is JScrollPane }
-                                if (scrollPane != null) {
-                                    (container.layout as CardLayout).show(container, "results")
-                                }
-                            }
+                            applyFilter()
                         }
-                        applyFilter()
+                    }
+
+                    val finalTotal = totalIssues
+                    val finalErrors = errors
+                    val finalWarnings = warnings
+                    val statusDetail = toolStatuses.entries.joinToString("; ") { "${it.key}: ${it.value}" }
+                    logger.info("Scan complete: $statusDetail")
+                    ApplicationManager.getApplication().invokeLater {
+                        progressBar.isVisible = false
+                        scanButton.isEnabled = true
+                        if (finalTotal == 0) {
+                            statusLabel.text = "扫描完成：未发现问题 ($statusDetail)"
+                            statusLabel.foreground = Color(0, 153, 0)
+                        } else {
+                            statusLabel.text = "扫描完成：$finalTotal 个问题（$finalErrors 错误 / $finalWarnings 警告）"
+                            statusLabel.foreground = Color(0xDB, 0x58, 0x60)
+                        }
                     }
                 }
 
-                val finalTotal = totalIssues
-                val finalErrors = errors
-                val finalWarnings = warnings
-                ApplicationManager.getApplication().invokeLater {
-                    progressBar.isVisible = false
-                    scanButton.isEnabled = true
-                    if (finalTotal == 0) {
-                        statusLabel.text = "扫描完成：未发现问题"
-                        statusLabel.foreground = Color(0, 153, 0)
-                    } else {
-                        statusLabel.text = "扫描完成：$finalTotal 个问题（$finalErrors 错误 / $finalWarnings 警告）"
-                        statusLabel.foreground = Color(0xDB, 0x58, 0x60)
+                override fun onThrowable(t: Throwable) {
+                    logger.error("Scan task failed", t)
+                    ApplicationManager.getApplication().invokeLater {
+                        progressBar.isVisible = false
+                        scanButton.isEnabled = true
+                        statusLabel.text = "扫描失败: ${t.message}"
+                        statusLabel.foreground = Color.RED
                     }
                 }
-            }.start()
+            })
         }
 
         clearButton.addActionListener {
@@ -380,18 +394,26 @@ class YanceLintToolWindowFactory : ToolWindowFactory {
     }
 
     private fun getInstance(project: Project, clazz: Class<*>): Any {
-        // Try project.getService() first (correct for @Service classes)
-        return try {
+        // 1. Try project.getService() for @Service classes
+        try {
             val method = Project::class.java.getMethod("getService", Class::class.java)
-            method.invoke(project, clazz)!!
-        } catch (_: Throwable) {
-            // Fallback: construct directly
-            try {
-                clazz.getConstructor(Project::class.java).newInstance(project)
-            } catch (_: Throwable) {
-                clazz.getDeclaredConstructor().newInstance()
-            }
-        }
+            val service = method.invoke(project, clazz)
+            if (service != null) return service
+        } catch (_: Throwable) {}
+
+        // 2. Try constructor with Project parameter
+        try {
+            return clazz.getConstructor(Project::class.java).newInstance(project)
+        } catch (_: Throwable) {}
+
+        // 3. Try no-arg constructor
+        try {
+            val ctor = clazz.getDeclaredConstructor()
+            ctor.isAccessible = true
+            return ctor.newInstance()
+        } catch (_: Throwable) {}
+
+        throw IllegalStateException("Cannot create instance of ${clazz.name}")
     }
 
     private fun extractViolation(item: Any, toolName: String, filePath: String): ViolationItem {

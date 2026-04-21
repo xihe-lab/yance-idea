@@ -1,11 +1,13 @@
 package com.xihe_lab.yance.idea.server
 
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.xihe_lab.yance.idea.lint.ui.ViolationItem
 import java.net.InetSocketAddress
 import com.sun.net.httpserver.HttpServer
 
+@Service(Service.Level.PROJECT)
 class LintHttpServer(private val project: Project) {
 
     private val logger = Logger.getInstance("YanceLint.LintHttpServer")

@@ -86,10 +86,6 @@
                     doNotActivateOnStart="true"
         />
         <notificationGroup id="YanceLint Notifications" displayType="BALLOON" />
-        <projectService serviceImplementation="com.xihe_lab.yance.idea.server.LintHttpServer" />
-        <projectService serviceImplementation="com.xihe_lab.yance.service.ViolationCache" />
-        <projectService serviceImplementation="com.xihe_lab.yance.engine.ExternalToolLocator" />
-        <projectService serviceImplementation="com.xihe_lab.yance.idea.lint.settings.YanceLintSettings" />
         <projectConfigurable parentId="tools"
                             instance="com.xihe_lab.yance.idea.lint.settings.YanceLintSettingsConfigurable"
                             id="YanceLintSettings"
